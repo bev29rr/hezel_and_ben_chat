@@ -7,8 +7,12 @@
     <body>
         <script>
             const username = window.prompt("Enter a username");
-
             const socket = new WebSocket("ws://localhost:3000");
+            const MessageType = {
+                ROOM_RESPONSE: 2
+            };
+
+            let roomNum = -1;
 
             socket.onopen = () => {
                 console.log("Connected to WebSocket server");
@@ -20,7 +24,21 @@
                 ));
             };
             socket.onmessage = (event) => {
-                window.alert("Message from server:" + event.data);
+                let messageParseStatus = false;
+                try {
+                    message = JSON.parse(event.data);
+                    messageParseStatus = true;
+                } catch (error) {
+                    console.log("Incorrect message data");
+                }
+                if (messageParseStatus) {
+                    if (message.type === MessageType.ROOM_RESPONSE) {
+                        window.alert(message);
+                        roomNum = message.data;
+                    } else {
+                        window.alert("Message from server:" + event.data);
+                    }
+                }
             };
             socket.onclose = () => {
                 window.alert("WebSocket connection closed, please refresh!");

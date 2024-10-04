@@ -26,6 +26,22 @@ let server = Bun.serve({
     websocket: {
         open(ws) {
             console.log("WebSocket connection opened");
+            let roomCheckInterval = setInterval(() => {
+                console.log(lobby.length);
+                if (lobby.length > 2) {
+                    let wsIndex = lobby.findIndex(conn => conn.ws === ws);
+                    if (wsIndex !== -1) {
+                        if (wsIndex !== 0) {
+                            let thisRoom = createRoom(lobby[0], lobby[wsIndex]);
+                        }
+                        ws.send(JSON.stringify({
+                            type: 2,
+                            data: thisRoom
+                        }));
+                        clearInterval(roomCheckInterval);
+                    }
+                }
+            }, 1000)
         },
 
         message(ws, message) {
@@ -42,16 +58,6 @@ let server = Bun.serve({
                 } else if (message.type === MessageType.MESSAGE) {
                     console.log("Message from client:", message.data);
                     console.log(rooms);
-                } else if (message.type === MessageType.ROOM_PING){
-                    if (lobby.some(conn => conn.ws === ws)) {
-                        if (lobby.length > 2) {
-                            
-                            ws.send(JSON.stringify({
-                                type: 2,
-                                data: true
-                            }));
-                        }
-                    }
                 } else {
                     console.log("Incorrect message type!");
                     console.log(lobby);
@@ -61,6 +67,7 @@ let server = Bun.serve({
 
         close(ws) {
             console.log("WebSocket connection closed");
+            lobby = lobby.filter(conn => conn.ws !== ws);
         },
 
         error(ws, error) {
@@ -77,13 +84,16 @@ function error404() {
 }
 
 function createRoom(user1, user2) {
-    rooms = lobby.filter(conn => conn.ws !== user1.ws);
-    rooms = lobby.filter(conn => conn.ws !== user2.ws);
-    rooms.push({
+    lobby = lobby.filter(conn => conn.ws !== user1.ws);
+    lobby = lobby.filter(conn => conn.ws !== user2.ws);
+    thisRoom = {
+        id: generateRoomID(),
         user1: user1, 
         user2: user2, 
         messages: []
-    });
+    }
+    rooms.push(thisRoom);
+    return thisRoom.id;
 }
 
 function respondFile(filePath) {
@@ -92,4 +102,8 @@ function respondFile(filePath) {
 
 function generateID(ws, username="default") {
     lobby.push({username: `${username}`, ws: ws});
+}
+
+function generateRoomID() {
+    return Math.random().toString(36).substr(2, 9);
 }
