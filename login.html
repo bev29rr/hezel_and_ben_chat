@@ -6,24 +6,28 @@
     </head>
     <body>
         <script>
+            const username = window.prompt("Enter a username");
+
             const socket = new WebSocket("ws://localhost:3000");
-            
+
             socket.onopen = () => {
                 console.log("Connected to WebSocket server");
+                socket.send(
+                    JSON.stringify({
+                        type: 0,
+                        data: username
+                    }
+                ));
             };
             socket.onmessage = (event) => {
-                console.log("Message from server:", event.data);
+                window.alert("Message from server:" + event.data);
             };
             socket.onclose = () => {
-                console.log("WebSocket connection closed");
+                window.alert("WebSocket connection closed, please refresh!");
             };
             socket.onerror = (error) => {
                 console.error("WebSocket error:", error);
             };
-                
-            setTimeout(() => {
-                socket.send("Hello from client after connection!");
-            }, 2000);
         </script>
     </body>
 </html>

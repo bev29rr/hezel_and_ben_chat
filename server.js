@@ -1,10 +1,15 @@
-let lobby = []
+let lobby = [];
+let rooms = [];
+
+const MessageType = {
+    USERNAME_PING: 0,
+    MESSAGE: 1,
+    ROOM_PING: 2
+};
 
 let server = Bun.serve({
     fetch (req, server) {
-        console.log(req);
         let path = new URL(req.url).pathname;
-        console.log(path);
         if (req.method === "GET") {
             if (req.headers.get("upgrade") === "websocket") {
                 if (server.upgrade(req)) {return;}
@@ -21,12 +26,37 @@ let server = Bun.serve({
     websocket: {
         open(ws) {
             console.log("WebSocket connection opened");
-            ws.send("Hello world");
         },
 
         message(ws, message) {
-            console.log("Message from client:", message);
-            ws.send("Received: " + message);
+            let messageParseStatus = false;
+            try {
+                message = JSON.parse(message);
+                messageParseStatus = true;
+            } catch (error) {
+                console.log("Incorrect message data");
+            }
+            if (messageParseStatus === true) {
+                if (message.type === MessageType.USERNAME_PING) {
+                    generateID(ws, message.data);
+                } else if (message.type === MessageType.MESSAGE) {
+                    console.log("Message from client:", message.data);
+                    console.log(rooms);
+                } else if (message.type === MessageType.ROOM_PING){
+                    if (lobby.some(conn => conn.ws === ws)) {
+                        if (lobby.length > 2) {
+                            
+                            ws.send(JSON.stringify({
+                                type: 2,
+                                data: true
+                            }));
+                        }
+                    }
+                } else {
+                    console.log("Incorrect message type!");
+                    console.log(lobby);
+                }
+            }
         },
 
         close(ws) {
@@ -46,10 +76,20 @@ function error404() {
     return new Response("Failed to load!");
 }
 
+function createRoom(user1, user2) {
+    rooms = lobby.filter(conn => conn.ws !== user1.ws);
+    rooms = lobby.filter(conn => conn.ws !== user2.ws);
+    rooms.push({
+        user1: user1, 
+        user2: user2, 
+        messages: []
+    });
+}
+
 function respondFile(filePath) {
     return new Response(Bun.file(filePath));
 }
 
-function generateID(username) {
-    lobby.push({username: `${username}`, id: '1234'});
+function generateID(ws, username="default") {
+    lobby.push({username: `${username}`, ws: ws});
 }
