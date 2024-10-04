@@ -12,20 +12,14 @@
                 console.log("Connected to WebSocket server");
                 //document.getElementById("messages").innerHTML += "<p>Connected to server</p>";
             };
-
-            // Event handler for receiving messages from the server
             socket.onmessage = (event) => {
                 console.log("Message from server:", event.data);
                 //document.getElementById("messages").innerHTML += `<p>Server says: ${event.data}</p>`;
             };
-
-            // Event handler for when the WebSocket connection is closed
             socket.onclose = () => {
                 console.log("WebSocket connection closed");
                 //document.getElementById("messages").innerHTML += "<p>Connection closed</p>";
             };
-
-            // Event handler for WebSocket errors
             socket.onerror = (error) => {
                 console.error("WebSocket error:", error);
                 //document.getElementById("messages").innerHTML += "<p>Error connecting to WebSocket</p>";
