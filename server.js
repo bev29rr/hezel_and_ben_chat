@@ -2,10 +2,14 @@ let lobby = []
 
 let server = Bun.serve({
     fetch (req, server) {
+        console.log(req);
         let path = new URL(req.url).pathname;
         console.log(path);
         if (req.method === "GET") {
-            if (path === "/") {
+            if (req.headers.get("upgrade") === "websocket") {
+                if (server.upgrade(req)) {return;}
+                return new Response("Upgrade failed", {status: 500});
+            } else if (path === "/") {
                 return respondFile("login.html");
             } else {
                 return error404();

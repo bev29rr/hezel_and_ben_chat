@@ -10,23 +10,19 @@
             
             socket.onopen = () => {
                 console.log("Connected to WebSocket server");
-                //document.getElementById("messages").innerHTML += "<p>Connected to server</p>";
             };
             socket.onmessage = (event) => {
                 console.log("Message from server:", event.data);
-                //document.getElementById("messages").innerHTML += `<p>Server says: ${event.data}</p>`;
             };
             socket.onclose = () => {
                 console.log("WebSocket connection closed");
-                //document.getElementById("messages").innerHTML += "<p>Connection closed</p>";
             };
             socket.onerror = (error) => {
                 console.error("WebSocket error:", error);
-                //document.getElementById("messages").innerHTML += "<p>Error connecting to WebSocket</p>";
             };
                 
             setTimeout(() => {
-                sendMessage("Hello from client after connection!");
+                socket.send("Hello from client after connection!");
             }, 2000);
         </script>
     </body>
