@@ -1,14 +1,105 @@
 <!DOCTYPE html>
-<!doctype html>
 <html>
     <head>
-<style></style>
+        <style>
+            .popup {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                width: 50%;
+                height: 50%;
+                transform: translate(-50%, -50%);
+                padding: 20px;
+                background-color: #474747;
+                z-index: 1000;
+                overflow-y: auto;
+            }
+
+            .popup h2 {
+                margin-top: 0;
+                position: sticky;
+                text-align: center;
+                font-weight: bold;
+                z-index: 10;
+                font-size: 24px;
+            }
+
+            button {
+                display: block;
+                margin: 5% 10%;
+                width: 80%;
+                padding: 4%;
+                background-color: #00d9e9;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background-color: #0095a0;
+            }
+            #username-display {
+                position: absolute;
+                top: 5%;
+                right: 5%;
+                height: 20px;
+                width: 10%;
+                font-size: 18px;
+                color: black;
+                background-color: #ffffffcc;
+                border-radius: 5px;
+                box-shadow: 0 2px 10px #2c2c2c;
+                padding: 1% 0 1% 0;
+                text-align: center;
+                font-weight: bold;
+                color: #00d9e9;
+            }
+        </style>
     </head>
     <body>
+        <div id="username-display"></div>
+        <div id="popup" class="popup">
+            <h2>Select a User to Connect</h2>
+            <div id="userButtons"></div>
+        </div>
         <script>
             const username = window.prompt("Enter a username");
-
             const socket = new WebSocket("ws://localhost:3000");
+            const MessageType = {
+                LOBBY_RESPONSE: 2,
+                ROOM_RESPONSE: 3
+            };
+
+            const usernameDiv = document.getElementById('username-display');
+            usernameDiv.innerHTML = username;
+
+            const userButtonsDiv = document.getElementById('userButtons');
+            function writeButtons(lobbyData) {
+                userButtonsDiv.innerHTML = '';
+
+                lobbyData.forEach(user => {
+                    const button = document.createElement('button');
+                    button.textContent = user.username;
+                    button.onclick = () => requestConnect(user.id);
+                    userButtonsDiv.appendChild(button);
+                });
+            }
+
+            function requestConnect(id) {
+                console.log("REQUEST ID OF:" + id);
+                socket.send(
+                    JSON.stringify({
+                        type: 3,
+                        data: id
+                    }
+                ));
+            }
+
+            const popupDiv = document.getElementById('popup');
+            function openTalk(id) {
+                console.log("ROOM: ", id);
+                popupDiv.style.display = 'none';
+            }
 
             socket.onopen = () => {
                 console.log("Connected to WebSocket server");
@@ -20,14 +111,40 @@
                 ));
             };
             socket.onmessage = (event) => {
-                window.alert("Message from server:" + event.data);
+                let messageParseStatus = false;
+                try {
+                    message = JSON.parse(event.data);
+                    messageParseStatus = true;
+                } catch (error) {
+                    console.log("Incorrect message data");
+                }
+                if (messageParseStatus) {
+                    if (message.type === MessageType.LOBBY_RESPONSE) {
+                        console.log("MESAJ VERI: ", message)
+                        writeButtons(message.data);
+                    } else if (message.type === MessageType.ROOM_RESPONSE) {
+                        openTalk(message.data);
+                    } else {
+                        console.log("Message from server:" + event.data);
+                    }
+                }
             };
             socket.onclose = () => {
-                window.alert("WebSocket connection closed, please refresh!");
+                setTimeout(() => location.reload(), 3000);
+                window.alert("WebSocket connection closed, auto-refreshing in 3 seconds!");
             };
+
             socket.onerror = (error) => {
                 console.error("WebSocket error:", error);
             };
+
+            let roomCheck = setInterval(() => {
+                socket.send(
+                    JSON.stringify({
+                        type: 2
+                    }
+                ));
+            }, 1000);
         </script>
     </body>
 </html>
