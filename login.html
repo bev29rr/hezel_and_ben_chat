@@ -54,14 +54,82 @@
                 font-weight: bold;
                 color: #00d9e9;
             }
+
+            #main {
+                width: 100%;
+                position: relative;
+                }
+                #websiteTitle {
+                width: 100%;
+                position: absolute;
+                border: 0px outset black;
+                background-color: rgb(72, 101, 245);    
+                text-align: center;
+                color: rgb(161, 225, 235);
+                font-size: 75px;
+                top: 0px;
+                left: 0px;
+                }
+                .scrollable { /* figure out how to add in comments */
+                height: 350px;
+                overflow-y: auto;
+                }
+                #chatBox{
+                position: relative;
+                height: 400;
+                width: 100%;
+                background-color: rgb(255, 255, 255);
+                top: 100px;
+                left: 0px;
+                }
+                .chatInput {
+                position: relative;
+                top: 110px;
+                left: 0px;
+                width: 1000px;
+                height: 50px;
+                }
+                .chatSubmit {
+                position: relative;
+                top: 50px;
+                left: 1100px;
+                height: 50px;
+                width: 100px;
+                }
+                .message{
+                position: relative;
+                margin: 1% 1%;
+                width: 50%;
+                padding: 1%;
+                font-size: 24px;
+                border-radius: 10px;
+                }
+                #me{
+                position: relative;
+                background-color: #147efb;
+                float: right;
+                }
+            #other {
+                position: relative;
+                background-color: #8e8e93;
+            }
         </style>
     </head>
     <body>
-        <div id="username-display"></div>
-        <div id="popup" class="popup">
-            <h2>Select a User to Connect</h2>
-            <div id="userButtons"></div>
-        </div>
+        <div id="main">
+            <div id="username-display"></div>
+            <div id="popup" class="popup">
+                <h2>Select a User to Connect</h2>
+                <div id="userButtons"></div>
+            </div>
+            <div id="websiteTitle">Browser Chat</div>
+            <div class="scrollable" id="chatBox">
+              </div>
+            <br>
+            <form>
+              <input type="text" class="chatInput" id="message" name="message"><br><br>
+              <input type="submit" class="chatSubmit" value="Submit">
+            </form>
         <script>
             const username = window.prompt("Enter a username");
             let GLOBAL_ID;
@@ -108,9 +176,13 @@
                 ));
             }
 
+            let chatBox = document.getElementById('chatBox');
             function displayMessage(message, isMe = true) {
-                //Not finished
-                console.log(message);
+                if (isMe) {
+                    chatBox.innerHTML += `<div class="message" id="me">${message}</div><br><br><br>`
+                } else {
+                    chatBox.innerHTML += `<div class="message" id="other">${message}</div>`
+                }
             }
 
             const popupDiv = document.getElementById('popup');
@@ -155,6 +227,16 @@
                     } else if (message.type === MessageType.ROOM_RESPONSE) {
                         openTalk(message.data);
                     } else if (message.type === MessageType.MESSAGES_RESPONSE) {
+                        chatBox.innerHTML = '';
+                        message.data.forEach((item, index) => {
+                            if (item.message != '') {
+                                if (item.userid == GLOBAL_ID) {
+                                    displayMessage(item.message, true);
+                                } else {
+                                    displayMessage(item.message, false);
+                                }
+                            }
+                            })
                         displayMessage(message.data);
                     } else {
                         console.log("Message from server:" + event.data);
