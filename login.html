@@ -64,10 +64,14 @@
         </div>
         <script>
             const username = window.prompt("Enter a username");
+            let GLOBAL_ID;
             const socket = new WebSocket("ws://localhost:3000");
             const MessageType = {
+                ID_RESPONSE: 0,
+                MESSAGE: 1, 
                 LOBBY_RESPONSE: 2,
-                ROOM_RESPONSE: 3
+                ROOM_RESPONSE: 3,
+                MESSAGES_RESPONSE: 4
             };
 
             const usernameDiv = document.getElementById('username-display');
@@ -95,10 +99,32 @@
                 ));
             }
 
+            function writeMessage(message) {
+                socket.send(
+                    JSON.stringify({
+                        type: 1,
+                        data: message
+                    }
+                ));
+            }
+
+            function displayMessage(message, isMe = true) {
+                //Not finished
+                console.log(message);
+            }
+
             const popupDiv = document.getElementById('popup');
             function openTalk(id) {
                 console.log("ROOM: ", id);
                 popupDiv.style.display = 'none';
+                clearInterval(roomCheck);
+                let getMessages = setInterval(() => {
+                    socket.send(
+                        JSON.stringify({
+                            type: 4
+                        }
+                    ));
+                }, 100);
             }
 
             socket.onopen = () => {
@@ -119,11 +145,17 @@
                     console.log("Incorrect message data");
                 }
                 if (messageParseStatus) {
-                    if (message.type === MessageType.LOBBY_RESPONSE) {
+                    if (message.type === MessageType.ID_RESPONSE) {
+                        GLOBAL_ID = message.data;
+                    } else if (message.type === MessageType.MESSAGE) {
+                        displayMessage(message, false);
+                    } else if (message.type === MessageType.LOBBY_RESPONSE) {
                         console.log("MESAJ VERI: ", message)
                         writeButtons(message.data);
                     } else if (message.type === MessageType.ROOM_RESPONSE) {
                         openTalk(message.data);
+                    } else if (message.type === MessageType.MESSAGES_RESPONSE) {
+                        displayMessage(message.data);
                     } else {
                         console.log("Message from server:" + event.data);
                     }
