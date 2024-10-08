@@ -4,8 +4,9 @@ let rooms = [];
 const MessageType = {
     USERNAME_PING: 0,
     MESSAGE: 1,
-    ROOM_PING: 2,
-    ROOM_REQ: 3
+    LOBBY_PING: 2,
+    ROOM_REQ: 3,
+    MESSAGE_REQUEST: 4
 };
 
 let server = Bun.serve({
@@ -39,11 +40,26 @@ let server = Bun.serve({
             }
             if (messageParseStatus === true) {
                 if (message.type === MessageType.USERNAME_PING) {
-                    generateID(ws, message.data);
+                    ws.send(JSON.stringify({
+                        type: 0,
+                        data: generateID(ws, message.data)
+                    }));
                 } else if (message.type === MessageType.MESSAGE) {
                     console.log("Message from client:", message.data);
-                    console.log(rooms);
-                } else if (message.type === MessageType.ROOM_PING) { 
+                    let lookOne = rooms.find(room => room.user1.ws === ws);
+                    let lookTwo = rooms.find(room => room.user2.ws === ws);
+                    if (lookOne !== undefined) {
+                        lookOne.messages.push({
+                            message: message.data,
+                            userid: lookOne.user1.id
+                        });
+                    } else if (lookTwo !== undefined) {
+                        lookTwo.messages.push({
+                            message: message.data,
+                            userid: lookTwo.user2.id
+                        });
+                    }
+                } else if (message.type === MessageType.LOBBY_PING) { 
                     const lobbyClean = lobby
                         .filter(user => user.ws !== ws)
                         .map(user => ({
@@ -75,6 +91,11 @@ let server = Bun.serve({
                             data: false
                         }));
                     }
+                } else if (message.type === MessageType.MESSAGE_REQUEST) {
+                    return ws.send(JSON.stringify({
+                        type: 4,
+                        data: getMessages(ws)
+                    }));
                 } else {
                     console.log("Incorrect message type!");
                     console.log(lobby);
@@ -97,9 +118,11 @@ let server = Bun.serve({
 
 console.log(`Server running at http://${server.hostname}:${server.port}/`);
 
+/*
 setInterval(() => {
     console.log(`rooms: ${rooms.length}`);
 }, 1000);
+*/
 
 /* 
 let roomCheckInterval = setInterval(() => {
@@ -120,6 +143,18 @@ function error404() {
     return new Response("Failed to load!");
 }
 
+function getMessages(ws) {
+    let roomUser1 = rooms.find(room => room.user1.ws === ws);
+    let roomUser2 = rooms.find(room => room.user2.ws === ws);
+    if (roomUser1 !== undefined) {
+        return roomUser1.messages;
+    } else if (roomUser2 !== undefined) {
+        return roomUser2.messages;
+    } else {
+        return false;
+    }
+}
+
 function createRoom(user1, user2) {
     lobby = lobby.filter(conn => conn.ws !== user1.ws);
     lobby = lobby.filter(conn => conn.ws !== user2.ws);
@@ -138,7 +173,9 @@ function respondFile(filePath) {
 }
 
 function generateID(ws, username="default") {
-    lobby.push({username: `${username}`, id: generateRoomID(), ws: ws});
+    let userID = generateRoomID();
+    lobby.push({username: `${username}`, id: userID, ws: ws});
+    return userID;
 }
 
 function generateRoomID() {
