@@ -1,5 +1,20 @@
+import os from 'os';
+
 let lobby = [];
 let rooms = [];
+
+function getLocalIPAddress() {
+    const networkInterfaces = os.networkInterfaces();
+    for (const interfaceName in networkInterfaces) {
+        const addresses = networkInterfaces[interfaceName];
+        for (const addr of addresses) {
+            if (addr.family === 'IPv4' && !addr.internal) {
+                return addr.address;  
+            }
+        }
+    }
+    return '127.0.0.1'; 
+}
 
 const MessageType = {
     USERNAME_PING: 0,
@@ -8,6 +23,11 @@ const MessageType = {
     ROOM_REQ: 3,
     MESSAGE_REQUEST: 4
 };
+
+const localIP = getLocalIPAddress();
+let serverIP = "0.0.0.0";
+
+console.log(localIP);
 
 let server = Bun.serve({
     fetch (req, server) {
@@ -45,7 +65,7 @@ let server = Bun.serve({
                         data: generateID(ws, message.data)
                     }));
                 } else if (message.type === MessageType.MESSAGE) {
-                    console.log("Message from client:", message.data);
+                    //console.log("Message from client:", message.data);
                     let lookOne = rooms.find(room => room.user1.ws === ws);
                     let lookTwo = rooms.find(room => room.user2.ws === ws);
                     if (lookOne !== undefined) {
@@ -113,7 +133,8 @@ let server = Bun.serve({
             console.error("WebSocket error:", error);
         }
     },
-    port: 3000,
+    hostname: serverIP,
+    port: 7878,
 });
 
 console.log(`Server running at http://${server.hostname}:${server.port}/`);
