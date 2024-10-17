@@ -126,10 +126,7 @@
             <div class="scrollable" id="chatBox">
               </div>
             <br>
-            <form>
-              <input type="text" class="chatInput" id="message" name="message"><br><br>
-              <input type="submit" class="chatSubmit" value="Submit">
-            </form>
+            <input type="text" class="chatInput" id="chatInput" placeholder="Type your message here...">
         <script>
             const username = window.prompt("Enter a username");
             let GLOBAL_ID;
@@ -167,6 +164,35 @@
                 ));
             }
 
+            let chatBox = document.getElementById('chatBox');
+            function displayMessage(message, isMe = true) {
+                // Ensure message is a string and non-empty
+                if (typeof message !== 'string' || message.trim() === '') {
+                    console.warn("Empty or invalid message, skipping display.");
+                    return;
+                }
+
+                if (isMe) {
+                    chatBox.innerHTML += `<div class="message" id="me">${escapeHTML(message)}</div><br><br><br>`;
+                } else {
+                    chatBox.innerHTML += `<br><br><div class="message" id="other">${escapeHTML(message)}</div>`;
+                }
+            }
+
+            function escapeHTML(str) {
+                return str.replace(/[&<>"']/g, function(match) {
+                    const escapeMap = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    };
+                    return escapeMap[match];
+                });
+            }
+
+
             function writeMessage(message) {
                 socket.send(
                     JSON.stringify({
@@ -174,15 +200,6 @@
                         data: message
                     }
                 ));
-            }
-
-            let chatBox = document.getElementById('chatBox');
-            function displayMessage(message, isMe = true) {
-                if (isMe) {
-                    chatBox.innerHTML += `<div class="message" id="me">${message}</div><br><br><br>`
-                } else {
-                    chatBox.innerHTML += `<div class="message" id="other">${message}</div>`
-                }
             }
 
             const popupDiv = document.getElementById('popup');
@@ -237,7 +254,6 @@
                                 }
                             }
                             })
-                        displayMessage(message.data);
                     } else {
                         console.log("Message from server:" + event.data);
                     }
@@ -259,6 +275,14 @@
                     }
                 ));
             }, 1000);
+
+            document.getElementById("chatInput").addEventListener("keypress", function(event) {
+                let message = document.getElementById("chatInput").value;
+                if (event.key === "Enter") {
+                    writeMessage(message);
+                    document.getElementById("chatInput").value = "";
+                }
+            });
         </script>
     </body>
 </html>
