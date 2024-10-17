@@ -89,13 +89,6 @@
                 width: 1000px;
                 height: 50px;
                 }
-                .chatSubmit {
-                position: relative;
-                top: 50px;
-                left: 1100px;
-                height: 50px;
-                width: 100px;
-                }
                 .message{
                 position: relative;
                 margin: 1% 1%;
@@ -126,10 +119,7 @@
             <div class="scrollable" id="chatBox">
               </div>
             <br>
-            <form>
-              <input type="text" class="chatInput" id="message" name="message"><br><br>
-              <input type="submit" class="chatSubmit" value="Submit">
-            </form>
+            <input type="text" class="chatInput" id="chatInput" placeholder="Type your message here...">
         <script>
             const username = window.prompt("Enter a username");
             let GLOBAL_ID;
@@ -178,11 +168,28 @@
 
             let chatBox = document.getElementById('chatBox');
             function displayMessage(message, isMe = true) {
-                if (isMe) {
-                    chatBox.innerHTML += `<div class="message" id="me">${message}</div><br><br><br>`
-                } else {
-                    chatBox.innerHTML += `<div class="message" id="other">${message}</div>`
+                if (typeof message !== 'string' || message.trim() === '') {
+                    return;
                 }
+                if (isMe) {
+                    chatBox.innerHTML += `<div class="message" id="me">${escapeHTML(message)}</div><br><br><br>`
+                } else {
+                    chatBox.innerHTML += `<div class="message" id="other">${escapeHTML(message)}</div>`
+                }
+            }
+
+            // Prevents xss attacks and fixes object
+            function escapeHTML(str) {
+                return str.replace(/[&<>"']/g, function(match) {
+                    const escapeMap = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    };
+                    return escapeMap[match];
+                });
             }
 
             const popupDiv = document.getElementById('popup');
@@ -222,21 +229,22 @@
                     } else if (message.type === MessageType.MESSAGE) {
                         displayMessage(message, false);
                     } else if (message.type === MessageType.LOBBY_RESPONSE) {
-                        console.log("MESAJ VERI: ", message)
                         writeButtons(message.data);
                     } else if (message.type === MessageType.ROOM_RESPONSE) {
                         openTalk(message.data);
                     } else if (message.type === MessageType.MESSAGES_RESPONSE) {
                         chatBox.innerHTML = '';
-                        message.data.forEach((item, index) => {
-                            if (item.message != '') {
-                                if (item.userid == GLOBAL_ID) {
-                                    displayMessage(item.message, true);
-                                } else {
-                                    displayMessage(item.message, false);
+                        if (Array.isArray(message.data)) {
+                            message.data.forEach((item) => {
+                                if (item && item.message && item.message.trim() !== '') {
+                                    if (item.userid === GLOBAL_ID) {
+                                        displayMessage(item.message, true);
+                                    } else {
+                                        displayMessage(item.message, false);
+                                    }
                                 }
-                            }
-                            })
+                            });
+                        }
                         displayMessage(message.data);
                     } else {
                         console.log("Message from server:" + event.data);
@@ -259,6 +267,14 @@
                     }
                 ));
             }, 1000);
+
+            document.getElementById("chatInput").addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    const message = document.getElementById("chatInput").value;
+                    writeMessage(message);
+                    document.getElementById("chatInput").value = "";
+                }
+            });
         </script>
     </body>
 </html>
